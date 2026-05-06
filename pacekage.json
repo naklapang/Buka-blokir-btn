@@ -1,0 +1,10 @@
+{
+  "name": "btn-telegram-notif",
+  "version": "1.0.0",
+  "description": "BTN Mobile recovery with Telegram notifications",
+  "main": "netlify/functions/send-data.js",
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
